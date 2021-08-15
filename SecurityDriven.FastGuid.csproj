@@ -20,4 +20,9 @@
 	<ItemGroup>
 		<None Remove="*.xml" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="LICENSE.md" />
+	  <None Remove="README.md" />
+	</ItemGroup>
 </Project>
