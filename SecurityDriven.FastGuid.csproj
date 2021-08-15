@@ -17,6 +17,10 @@
 		<PackageTags>Guid NewGuid Fast</PackageTags>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <DocumentationFile>SecurityDriven.FastGuid.xml</DocumentationFile>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<None Remove="*.xml" />
 	</ItemGroup>
