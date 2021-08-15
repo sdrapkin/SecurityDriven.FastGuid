@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
@@ -16,18 +17,18 @@ namespace SecurityDriven
 		{
 			public Guid[] _guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
 			public int _idx = GUIDS_PER_THREAD;
-
-			public Guid NextGuid()
+			public Guid NewGuid()
 			{
 				int idx = _idx++ & (GUIDS_PER_THREAD - 1);
 				if (idx == 0) RandomNumberGenerator.Fill(MemoryMarshal.Cast<Guid, byte>(_guids));
 
-				var guid = _guids[idx];
+				Guid guid = _guids[idx];
 				_guids[idx] = default; // prevents Guid leakage
 				return guid;
 			}//NextGuid()
 		}//class Container
 
-		public static Guid NewGuid() => LocalContainer.NextGuid();
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Guid NewGuid() => LocalContainer.NewGuid();
 	}//class FastGuid
 }//ns
