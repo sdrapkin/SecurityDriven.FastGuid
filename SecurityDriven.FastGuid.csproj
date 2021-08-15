@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<PackageId>FastGuid</PackageId>
+		<TargetFramework>net5.0</TargetFramework>
+		<Authors>Stan Drapkin</Authors>
+		<Company>https://SecurityDriven.net</Company>
+		<Copyright>Copyright © $([System.DateTime]::UtcNow.ToString(yyyy)) Stan Drapkin</Copyright>
+		<Version>1.0.0</Version>
+		<SignAssembly>false</SignAssembly>
+		<AssemblyOriginatorKeyFile>Inferno.snk</AssemblyOriginatorKeyFile>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageIconUrl>https://avatars.githubusercontent.com/u/9137858?s=128</PackageIconUrl>
+		<PackageReleaseNotes>1st release.</PackageReleaseNotes>
+		<Description>Fast replacement for Guid.NewGuid()</Description>
+		<PackageTags>Guid NewGuid Fast</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="*.xml" />
+	</ItemGroup>
+</Project>
