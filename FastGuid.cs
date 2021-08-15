@@ -28,6 +28,11 @@ namespace SecurityDriven
 			}//NextGuid()
 		}//class Container
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Guid"/> structure.
+		/// </summary>
+		/// <returns>A new <see cref="Guid"/> struct.</returns>
+		/// <remarks>Faster alternative to <see cref="Guid.NewGuid"/>.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Guid NewGuid() => LocalContainer.NewGuid();
 	}//class FastGuid
