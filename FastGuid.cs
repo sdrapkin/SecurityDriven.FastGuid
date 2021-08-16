@@ -7,6 +7,9 @@ namespace SecurityDriven
 {
 	public static class FastGuid
 	{
+		// Copyright (c) 2021 Stan Drapkin
+		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
+
 		const int GUIDS_PER_THREAD = 512; //keep it power-of-2
 		[ThreadStatic] static Container ts_data;
 
