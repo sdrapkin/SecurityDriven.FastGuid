@@ -6,6 +6,8 @@
 		<Authors>Stan Drapkin</Authors>
 		<Company>https://SecurityDriven.net</Company>
 		<Copyright>Copyright © $([System.DateTime]::UtcNow.ToString(yyyy)) Stan Drapkin</Copyright>
+		<RepositoryUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 		<Version>1.0.0</Version>
 		<SignAssembly>false</SignAssembly>
 		<AssemblyOriginatorKeyFile>Inferno.snk</AssemblyOriginatorKeyFile>
