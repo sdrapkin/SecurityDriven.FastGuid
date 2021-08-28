@@ -18,15 +18,18 @@ namespace SecurityDriven
 
 		sealed class Container
 		{
-			public Guid[] _guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
-			public int _idx = GUIDS_PER_THREAD;
+			Guid[] _guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
+			int _idx;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public Guid NewGuid()
 			{
+				var guids = _guids;
 				int idx = _idx++ & (GUIDS_PER_THREAD - 1);
-				if (idx == 0) RandomNumberGenerator.Fill(MemoryMarshal.Cast<Guid, byte>(_guids));
+				if (idx == 0) RandomNumberGenerator.Fill(MemoryMarshal.Cast<Guid, byte>(guids));
 
-				Guid guid = _guids[idx];
-				_guids[idx] = default; // prevents Guid leakage
+				Guid guid = guids[idx];
+				guids[idx] = default; // prevents Guid leakage
 				return guid;
 			}//NextGuid()
 		}//class Container
