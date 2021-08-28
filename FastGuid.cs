@@ -13,8 +13,13 @@ namespace SecurityDriven
 		const int GUIDS_PER_THREAD = 512; //keep it power-of-2
 		[ThreadStatic] static Container ts_data;
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static Container CreateContainer() => ts_data = new();
-		static Container LocalContainer => ts_data ?? CreateContainer();
+		static Container LocalContainer
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => ts_data ?? CreateContainer();
+		}
 
 		sealed class Container
 		{
