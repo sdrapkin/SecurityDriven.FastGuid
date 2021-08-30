@@ -8,15 +8,17 @@
 		<Copyright>Copyright © $([System.DateTime]::UtcNow.ToString(yyyy)) Stan Drapkin</Copyright>
 		<RepositoryUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>1.0.0</Version>
+		<Version>1.0.1</Version>
 		<SignAssembly>false</SignAssembly>
 		<AssemblyOriginatorKeyFile>Inferno.snk</AssemblyOriginatorKeyFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageIconUrl>https://avatars.githubusercontent.com/u/9137858?s=128</PackageIconUrl>
-		<PackageReleaseNotes>1st release.</PackageReleaseNotes>
+		<PackageReleaseNotes>Performance improvements.
+~10x faster than Guid.NewGuid().</PackageReleaseNotes>
 		<Description>Fast replacement for Guid.NewGuid()</Description>
 		<PackageTags>Guid NewGuid Fast</PackageTags>
+		<PackageProjectUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</PackageProjectUrl>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
