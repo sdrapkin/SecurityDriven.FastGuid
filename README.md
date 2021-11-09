@@ -46,12 +46,12 @@ public class Bench
 ```
 
 ```csharp
-BenchmarkDotNet=v0.13.1, OS=Windows 10.0.19042.1165 (20H2/October2020Update)
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.19042.1320 (20H2/October2020Update)
 Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK=6.0.100-preview.7.21379.14
-  [Host] : .NET 6.0.0 (6.0.21.37719), X64 RyuJIT
+.NET SDK=6.0.100
+  [Host] : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
 ```
 |           Method |       Mean |    Error |   StdDev | Ratio | RatioSD |
 |----------------- |-----------:|---------:|---------:|------:|--------:|
-| FastGuid_NewGuid |   104.6 ns |  0.58 ns |  0.48 ns |  1.00 |    0.00 |
-|     Guid_NewGuid | 1,135.4 ns | 16.34 ns | 18.16 ns | 10.80 |    0.17 |
+| FastGuid_NewGuid |   105.3 ns |  2.06 ns |  2.37 ns |  1.00 |    0.00 |
+|     Guid_NewGuid | 1,117.3 ns | 22.09 ns | 29.49 ns | 10.61 |    0.39 |
