@@ -14,11 +14,13 @@ namespace SecurityDriven
 		const int GUIDS_PER_THREAD = 256; //keep it power-of-2
 		const int GUID_SIZE_IN_BYTES = 16;
 
-		static class Inner
-		{
-			[ThreadStatic] public static Container s_container = new();
-		}// class Inner
+		[ThreadStatic] static Container ts_data;
 
+		static Container LocalContainer
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => ts_data ??= new();
+		}
 		sealed class Container
 		{
 			Guid[] _guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
@@ -47,6 +49,6 @@ namespace SecurityDriven
 		/// <returns>A new <see cref="Guid"/> struct.</returns>
 		/// <remarks>Faster alternative to <see cref="Guid.NewGuid"/>.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Guid NewGuid() => Inner.s_container.NewGuid();
+		public static Guid NewGuid() => LocalContainer.NewGuid();
 	}//class FastGuid
 }//ns
