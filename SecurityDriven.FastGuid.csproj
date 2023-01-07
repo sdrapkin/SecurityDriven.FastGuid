@@ -19,6 +19,7 @@
 		<Description>Fast replacement for Guid.NewGuid()</Description>
 		<PackageTags>Guid NewGuid Fast</PackageTags>
 		<PackageProjectUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</PackageProjectUrl>
+		<AllowUnsafeBlocks>false</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

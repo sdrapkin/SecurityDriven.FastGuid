@@ -8,38 +8,37 @@ namespace SecurityDriven
 	/// <summary>Represents a globally unique identifier (GUID).</summary>
 	public static class FastGuid
 	{
-		// Copyright (c) 2022 Stan Drapkin
+		// Copyright (c) 2023 Stan Drapkin
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
 
-		const int GUIDS_PER_THREAD = 256; //keep it power-of-2
+		const int GUIDS_PER_THREAD = 1 << 8; // 256 (keep it power-of-2)
 		const int GUID_SIZE_IN_BYTES = 16;
-		const int DATETIME_SIZE_IN_BYTES = 8;
 
 		struct Container
 		{
 			public Guid[] _guids;
-			public int _idx;
-		}
+			public byte _idx;
+		}//Container
 
-		[ThreadStatic] static Container ts_data;
+		[ThreadStatic] static Container ts_container; //ts stands for "ThreadStatic"
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Guid"/> structure.
-		/// </summary>
+		/// <summary>Initializes a new instance of the <see cref="Guid"/> structure.</summary>
 		/// <returns>A new <see cref="Guid"/> struct.</returns>
 		/// <remarks>Faster alternative to <see cref="Guid.NewGuid"/>.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Guid NewGuid()
 		{
-			ref var guid0 = ref MemoryMarshal.GetArrayDataReference(ts_data._guids ??= GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD));
-			int idx = ts_data._idx++ & (GUIDS_PER_THREAD - 1);
+			ref Container container = ref ts_container;
+			if (container._guids == null) container._guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
+			ref Guid guid0 = ref MemoryMarshal.GetArrayDataReference(container._guids);
+			byte idx = container._idx++;
 			if (idx == 0)
 			{
 				RandomNumberGenerator.Fill(
 					MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref guid0), GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES));
 			}
 
-			var guid = Unsafe.Add(ref guid0, idx);
+			Guid guid = Unsafe.Add(ref guid0, idx);
 			Unsafe.Add(ref guid0, idx) = default; // prevents Guid leakage
 			return guid;
 		}//NewGuid()
@@ -55,25 +54,38 @@ namespace SecurityDriven
 		public static Guid NewSqlServerGuid()
 		{
 			Guid guid = FastGuid.NewGuid();
-			Span<byte> guidSpan = MemoryMarshal.CreateSpan(ref Unsafe.As<Guid, byte>(ref guid), GUID_SIZE_IN_BYTES);
+			ref var guidStruct = ref Unsafe.As<Guid, (LongStruct LONG0, LongStruct LONG1)>(ref guid);
 
 			DateTime utcNow = DateTime.UtcNow;
-			Span<byte> ticksSpan = MemoryMarshal.CreateSpan(ref Unsafe.As<DateTime, byte>(ref utcNow), DATETIME_SIZE_IN_BYTES);
+			ref var ticksStruct = ref Unsafe.As<DateTime, LongStruct>(ref utcNow);
 
 			// based on Microsoft SqlGuid.cs
 			// https://github.com/microsoft/referencesource/blob/5697c29004a34d80acdaf5742d7e699022c64ecd/System.Data/System/Data/SQLTypes/SQLGuid.cs
 
-			guidSpan[10] = ticksSpan[7];
-			guidSpan[11] = ticksSpan[6];
-			guidSpan[12] = ticksSpan[5];
-			guidSpan[13] = ticksSpan[4];
-			guidSpan[14] = ticksSpan[3];
-			guidSpan[15] = ticksSpan[2];
+			guidStruct.LONG1.B2 = ticksStruct.B7;
+			guidStruct.LONG1.B3 = ticksStruct.B6;
+			guidStruct.LONG1.B4 = ticksStruct.B5;
+			guidStruct.LONG1.B5 = ticksStruct.B4;
+			guidStruct.LONG1.B6 = ticksStruct.B3;
+			guidStruct.LONG1.B7 = ticksStruct.B2;
 
-			guidSpan[08] = ticksSpan[1];
-			guidSpan[09] = ticksSpan[0];
+			guidStruct.LONG1.B0 = ticksStruct.B1;
+			guidStruct.LONG1.B1 = ticksStruct.B0;
 
 			return guid;
 		}// NewSqlServerGuid()
+
+		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = sizeof(long))]
+		struct LongStruct
+		{
+			public byte B0;
+			public byte B1;
+			public byte B2;
+			public byte B3;
+			public byte B4;
+			public byte B5;
+			public byte B6;
+			public byte B7;
+		}//struct LongStruct
 	}//class FastGuid
 }//ns
