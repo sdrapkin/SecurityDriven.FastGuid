@@ -29,7 +29,7 @@ namespace SecurityDriven
 		public static Guid NewGuid()
 		{
 			ref Container container = ref ts_container;
-			container._guids ??= GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
+			if (container._guids == null) container._guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD); // more efficient than compound assignment
 			ref Guid guid0 = ref MemoryMarshal.GetArrayDataReference(container._guids);
 			byte idx = container._idx++;
 			if (idx == 0)
