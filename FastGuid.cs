@@ -17,7 +17,7 @@ namespace SecurityDriven
 		struct Container
 		{
 			public Guid[] _guids;
-			public byte _idx;
+			public byte _idx; // wraps around on 256 (GUIDS_PER_THREAD)
 		}//Container
 
 		[ThreadStatic] static Container ts_container; //ts stands for "ThreadStatic"
@@ -29,7 +29,7 @@ namespace SecurityDriven
 		public static Guid NewGuid()
 		{
 			ref Container container = ref ts_container;
-			if (container._guids == null) container._guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
+			container._guids ??= GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD);
 			ref Guid guid0 = ref MemoryMarshal.GetArrayDataReference(container._guids);
 			byte idx = container._idx++;
 			if (idx == 0)
