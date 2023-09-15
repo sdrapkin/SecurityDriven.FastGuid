@@ -20,6 +20,7 @@
 		<PackageTags>Guid NewGuid Fast</PackageTags>
 		<PackageProjectUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</PackageProjectUrl>
 		<AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
