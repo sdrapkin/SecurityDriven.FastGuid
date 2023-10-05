@@ -14,8 +14,11 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageIconUrl>https://avatars.githubusercontent.com/u/9137858?s=128</PackageIconUrl>
-		<PackageReleaseNotes>Performance improvements.
-~10x faster than Guid.NewGuid().</PackageReleaseNotes>
+		<PackageReleaseNotes>
+			Performance improvements.
+			~10x faster than Guid.NewGuid().
+			Performance-tested on .NET 8, 7, 6, and 5.
+		</PackageReleaseNotes>
 		<Description>Fast replacement for Guid.NewGuid()</Description>
 		<PackageTags>Guid NewGuid Fast</PackageTags>
 		<PackageProjectUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</PackageProjectUrl>

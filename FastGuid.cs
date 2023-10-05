@@ -14,9 +14,17 @@ namespace SecurityDriven
 		const int GUIDS_PER_THREAD = 1 << 8; // 256 (keep it power-of-2)
 		const int GUID_SIZE_IN_BYTES = 16;
 
+		[StructLayout(LayoutKind.Sequential, Size = GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES, Pack = 1)]
+		struct Guids
+		{
+			Guid guid0;
+
+			public Span<Guid> AsSpanGuid() => MemoryMarshal.CreateSpan(ref guid0, GUIDS_PER_THREAD);
+		}//Guids
+
 		struct Container
 		{
-			public Guid[] _guids;
+			public Guids _guids; // do not move, should be 1st
 			public byte _idx; // wraps around on 256 (GUIDS_PER_THREAD)
 		}//Container
 
@@ -29,17 +37,15 @@ namespace SecurityDriven
 		public static Guid NewGuid()
 		{
 			ref Container container = ref ts_container;
-			if (container._guids == null) container._guids = GC.AllocateUninitializedArray<Guid>(GUIDS_PER_THREAD); // more efficient than compound assignment
-			ref Guid guid0 = ref MemoryMarshal.GetArrayDataReference(container._guids);
 			byte idx = container._idx++;
 			if (idx == 0)
 			{
 				RandomNumberGenerator.Fill(
-					MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref guid0), GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES));
+					MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Container, byte>(ref container), GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES));
 			}
-
-			Guid guid = Unsafe.Add(ref guid0, idx);
-			Unsafe.Add(ref guid0, idx) = default; // prevents Guid leakage
+			Span<Guid> span = container._guids.AsSpanGuid();
+			Guid guid = span[idx];
+			span[idx] = default;
 			return guid;
 		}//NewGuid()
 
