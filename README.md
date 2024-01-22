@@ -4,6 +4,15 @@
 
 ## 10 times faster than `Guid.NewGuid()`
 
+## Static APIs
+* **`Guid FastGuid.NewGuid()`**
+	- returns a cryptographically random GUID.
+	- ~10x faster than Guid.NewGuid().
+* **`FastGuid.Fill(Span<byte> data)`**
+	- Fills a span with cryptographically strong random bytes.
+	- ~5x faster for <512 bytes, otherwise calls RandomNumberGenerator.Fill()
+
+## Usage
 Replace all calls to [`Guid.NewGuid()`](https://grep.app/search?q=Guid.NewGuid%28%29&filter[lang][0]=C%23) with `FastGuid.NewGuid()`
 
 ..from this:
@@ -19,6 +28,18 @@ Guid guid = FastGuid.NewGuid(); // 10x faster
 
 * **Thread-safe**
 * **128 bits of cryptographically-strong randomness**
+
+Switch from this:
+```csharp
+Span<byte> key = stackalloc byte[32];
+RandomNumberGenerator.Fill(key); // 145 nanoseconds
+```
+
+..to this:
+```csharp
+Span<byte> key = stackalloc byte[32];
+FastGuid.Fill(key); // 25 nanoseconds
+```
 
 ## Benchmark:
 ```csharp

@@ -8,7 +8,7 @@
 		<Copyright>Copyright © $([System.DateTime]::UtcNow.ToString(yyyy)) Stan Drapkin</Copyright>
 		<RepositoryUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>Inferno.snk</AssemblyOriginatorKeyFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -18,12 +18,14 @@
 			Performance improvements.
 			~10x faster than Guid.NewGuid().
 			Performance-tested on .NET 8, 7, 6, and 5.
+			New FastGuid.Fill() method - see README.
 		</PackageReleaseNotes>
 		<Description>Fast replacement for Guid.NewGuid()</Description>
 		<PackageTags>Guid NewGuid Fast</PackageTags>
 		<PackageProjectUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</PackageProjectUrl>
 		<AllowUnsafeBlocks>false</AllowUnsafeBlocks>
 		<LangVersion>latest</LangVersion>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -36,6 +38,12 @@
 
 	<ItemGroup>
 	  <None Remove="LICENSE.md" />
-	  <None Remove="README.md" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
 	</ItemGroup>
 </Project>

@@ -8,7 +8,7 @@ namespace SecurityDriven
 	/// <summary>Represents a globally unique identifier (GUID).</summary>
 	public static class FastGuid
 	{
-		// Copyright (c) 2023 Stan Drapkin
+		// Copyright (c) 2024 Stan Drapkin
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
 
 		const int GUIDS_PER_THREAD = 1 << 8; // 256 (keep it power-of-2)
@@ -40,14 +40,65 @@ namespace SecurityDriven
 			byte idx = container._idx++;
 			if (idx == 0)
 			{
-				RandomNumberGenerator.Fill(
-					MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Container, byte>(ref container), GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES));
-			}
+				FillContainer(ref container);
+			}//if
 			Span<Guid> span = container._guids.AsSpanGuid();
 			Guid guid = span[idx];
 			span[idx] = default;
 			return guid;
 		}//NewGuid()
+
+
+		const int MAX_BYTES_TO_FILL_VIA_GUIDS = 512;
+
+		/// <summary>
+		/// Fills a span with cryptographically strong random bytes.
+		/// </summary>
+		/// <param name="data">The span to fill with cryptographically strong random bytes.</param>
+		/// <remarks>If <paramref name="data"/> is larger than 512 bytes, RandomNumberGenerator.Fill(data) is used instead.</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Fill(Span<byte> data)
+		{
+			int dataLength = data.Length;
+			if (dataLength == 0) return;
+			if (dataLength > MAX_BYTES_TO_FILL_VIA_GUIDS)
+			{
+				RandomNumberGenerator.Fill(data); return;
+			}//if
+
+			int lengthInGuids = dataLength >> 4;
+
+			ref Container container = ref ts_container;
+			byte idx = container._idx;
+			Span<Guid> guidsAsSpan = container._guids.AsSpanGuid();
+			Span<Guid> dataAsGuids = MemoryMarshal.CreateSpan<Guid>(ref Unsafe.As<byte, Guid>(ref data[0]), lengthInGuids);
+
+			for (int i = 0; i < lengthInGuids; ++i)
+			{
+				if (idx == 0) FillContainer(ref container);
+
+				dataAsGuids[i] = guidsAsSpan[idx];
+				guidsAsSpan[idx++] = default;
+			}//for
+
+			int remainingBytes = dataLength - (lengthInGuids << 4);
+			if (remainingBytes > 0)
+			{
+				if (idx == 0) FillContainer(ref container);
+
+				Span<byte> byteSpan = MemoryMarshal.CreateSpan(ref Unsafe.As<Guid, byte>(ref guidsAsSpan[idx]), GUID_SIZE_IN_BYTES).Slice(0, remainingBytes);
+				byteSpan.CopyTo(data.Slice(dataLength - remainingBytes));
+				guidsAsSpan[idx++] = default;
+			}//if
+			container._idx = idx;
+		}//Fill()
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static void FillContainer(ref Container container)
+		{
+			RandomNumberGenerator.Fill(
+						MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Container, byte>(ref container), GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES));
+		}//FillContainer()
 
 		/// <summary>
 		/// Returns new Guid well-suited to be used as a SQL-Server clustered key.
