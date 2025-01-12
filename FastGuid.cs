@@ -48,7 +48,6 @@ namespace SecurityDriven
 			return guid;
 		}//NewGuid()
 
-
 		const int MAX_BYTES_TO_FILL_VIA_GUIDS = 512;
 
 		/// <summary>
@@ -103,7 +102,7 @@ namespace SecurityDriven
 		/// <summary>
 		/// Returns new Guid optimized for use as a SQL-Server clustered key.
 		/// Guid structure is [8 random bytes][8 bytes of SQL-Server-ordered DateTime.UtcNow].
-		/// Each Guid should be sequential accross 100-nanosecond UtcNow precision limits.
+		/// Each Guid should be sequential across 100-nanosecond UtcNow precision limits.
 		/// 64-bit cryptographic randomness adds uniqueness for timestamp collisions and provides reasonable unguessability and protection against online brute-force attacks.
 		/// </summary>
 		/// <returns>Guid for SQL-Server clustered key.</returns>
