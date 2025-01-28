@@ -106,23 +106,26 @@ Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
 
 ## Benchmark #2:
 ```csharp
-static Guid Test_Guid_CreateVersion7() => Guid.CreateVersion7();
-static Guid Test_Guid_NewGuid() => Guid.NewGuid();
-static Guid Test_FastGuid_NewGuid() => FastGuid.NewGuid();
-static Guid Test_FastGuid_NewSqlServerGuid() => FastGuid.NewSqlServerGuid();
+static Guid Guid_NewGuid() => Guid.NewGuid();
+static Guid Guid_CreateVersion7() => Guid.CreateVersion7();
+static Guid FastGuid_NewGuid() => SecurityDriven.FastGuid.NewGuid();
+static Guid FastGuid_NewSqlServerGuid() => SecurityDriven.FastGuid.NewSqlServerGuid();
+static Guid FastGuid_NewPostgreSqlGuid() => SecurityDriven.FastGuid.NewPostgreSqlGuid();
 ```
 
 ```csharp
-BenchmarkDotNet v0.13.8, Windows 10 (10.0.19045.4780/22H2/2022Update)
+BenchmarkDotNet v0.13.8, Windows 10 (10.0.19045.5371/22H2/2022Update)
 Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK 9.0.100-preview.7.24407.12
-  [Host] : .NET 9.0.0 (9.0.24.40507), X64 RyuJIT AVX2
+.NET SDK 9.0.102
+  [Host] : .NET 9.0.1 (9.0.124.61010), X64 RyuJIT AVX2
 ```
+| Method                     | Mean       | Error     | StdDev    | Ratio|
+|--------------------------- |-----------:|----------:|----------:|-----:|
+| Guid_NewGuid               |  84.479 ns | 1.5090 ns | 3.3751 ns |   9x |
+| Guid_CreateVersion7        | 116.798 ns | 1.5795 ns | 1.8190 ns |  12x |
+| FastGuid_NewGuid           |   9.676 ns | 0.2318 ns | 0.5278 ns |   1x |
+| FastGuid_NewSqlServerGuid  |  36.710 ns | 0.6097 ns | 0.8546 ns |   4x |
+| FastGuid_NewPostgreSqlGuid |  37.292 ns | 0.7558 ns | 1.0839 ns |   4x |
 
-| Method                         | Mean       | Error  | StdDev |Ratio|
-|------------------------------- |-----------:|-------:|-------:|----:|
-| Test_Guid_CreateVersion7       | 149.7 ns   | 3.0 ns | 5.9 ns | 16x |
-| Test_Guid_NewGuid              |  84.7 ns   | 1.7 ns | 3.5 ns |  9x |
-| Test_FastGuid_NewGuid (base)   |   9.6 ns   | 0.2 ns | 0.4 ns |  1x |
-| Test_FastGuid_NewSqlServerGuid |  42.5 ns   | 0.9 ns | 1.4 ns |  4x |
+![image](https://github.com/user-attachments/assets/be64b268-56b4-40e2-9757-9205c6fea411)
 
