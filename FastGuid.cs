@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -8,18 +10,23 @@ namespace SecurityDriven
 	/// <summary>Represents a globally unique identifier (GUID).</summary>
 	public static class FastGuid
 	{
-		// Copyright (c) 2024 Stan Drapkin
+		// Copyright (c) 2025 Stan Drapkin
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
 
 		const int GUIDS_PER_THREAD = 1 << 8; // 256 (keep it power-of-2)
 		const int GUID_SIZE_IN_BYTES = 16;
 
-		[StructLayout(LayoutKind.Sequential, Size = GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES, Pack = 1)]
+		[StructLayout(LayoutKind.Explicit, Size = GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES, Pack = 1)]
 		struct Guids
 		{
+			[FieldOffset(0)]
 			Guid guid0;
 
+			[FieldOffset(0)]
+			byte byte0;
+
 			public Span<Guid> AsSpanGuid() => MemoryMarshal.CreateSpan(ref guid0, GUIDS_PER_THREAD);
+			public Span<byte> AsSpanByte() => MemoryMarshal.CreateSpan(ref byte0, GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES);
 		}//Guids
 
 		struct Container
@@ -28,7 +35,7 @@ namespace SecurityDriven
 			public byte _idx; // wraps around on 256 (GUIDS_PER_THREAD)
 		}//Container
 
-		[ThreadStatic] static Container ts_container; //ts stands for "ThreadStatic"
+		[ThreadStatic] static Container ts_container; // ts stands for "ThreadStatic"
 
 		/// <summary>Initializes a new instance of the <see cref="Guid"/> structure.</summary>
 		/// <returns>A new <see cref="Guid"/> struct.</returns>
@@ -65,44 +72,44 @@ namespace SecurityDriven
 				RandomNumberGenerator.Fill(data); return;
 			}//if
 
-			int lengthInGuids = dataLength >> 4;
+			int lengthInGuids = dataLength >>> 4; // faster assembly than "dataLength / GUID_SIZE_IN_BYTES"
 
 			ref Container container = ref ts_container;
 			byte idx = container._idx;
 			Span<Guid> guidsAsSpan = container._guids.AsSpanGuid();
-			Span<Guid> dataAsGuids = MemoryMarshal.CreateSpan<Guid>(ref Unsafe.As<byte, Guid>(ref data[0]), lengthInGuids);
 
-			for (int i = 0; i < lengthInGuids; ++i)
+			if (lengthInGuids > 0)
 			{
-				if (idx == 0) FillContainer(ref container);
+				Span<Guid> dataAsGuids = MemoryMarshal.CreateSpan<Guid>(ref Unsafe.As<byte, Guid>(ref MemoryMarshal.GetReference(data)), lengthInGuids);
+				for (int i = 0; i < lengthInGuids; ++i)
+				{
+					if (idx == 0) FillContainer(ref container);
 
-				dataAsGuids[i] = guidsAsSpan[idx];
-				guidsAsSpan[idx++] = default;
-			}//for
+					dataAsGuids[i] = guidsAsSpan[idx];
+					guidsAsSpan[idx++] = default;
+				}//for
+			}//if
 
-			int remainingBytes = dataLength - (lengthInGuids << 4);
+			lengthInGuids *= GUID_SIZE_IN_BYTES; // same assembly as "lengthInGuids << 4"
+			int remainingBytes = dataLength - lengthInGuids;
 			if (remainingBytes > 0)
 			{
 				if (idx == 0) FillContainer(ref container);
 
-				Span<byte> byteSpan = MemoryMarshal.CreateSpan(ref Unsafe.As<Guid, byte>(ref guidsAsSpan[idx]), GUID_SIZE_IN_BYTES).Slice(0, remainingBytes);
-				byteSpan.CopyTo(data.Slice(dataLength - remainingBytes));
+				Span<byte> guidAsByteSpan = MemoryMarshal.CreateSpan(ref Unsafe.As<Guid, byte>(ref guidsAsSpan[idx]), remainingBytes);
+				guidAsByteSpan.TryCopyTo(data.Slice(lengthInGuids));
 				guidsAsSpan[idx++] = default;
 			}//if
 			container._idx = idx;
 		}//Fill()
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static void FillContainer(ref Container container)
-		{
-			RandomNumberGenerator.Fill(
-						MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Container, byte>(ref container), GUIDS_PER_THREAD * GUID_SIZE_IN_BYTES));
-		}//FillContainer()
+		static void FillContainer(ref Container container) => RandomNumberGenerator.Fill(container._guids.AsSpanByte());
 
 		/// <summary>
 		/// Returns new Guid optimized for use as a SQL-Server clustered key.
 		/// Guid structure is [8 random bytes][8 bytes of SQL-Server-ordered DateTime.UtcNow].
-		/// Each Guid should be sequential across 100-nanosecond UtcNow precision limits.
+		/// Each Guid should be sequential within 100-nanosecond UtcNow precision limits.
 		/// 64-bit cryptographic randomness adds uniqueness for timestamp collisions and provides reasonable unguessability and protection against online brute-force attacks.
 		/// </summary>
 		/// <returns>Guid for SQL-Server clustered key.</returns>
@@ -120,75 +127,84 @@ namespace SecurityDriven
 		public static Guid NewSqlServerGuid(DateTime timestampUtc)
 		{
 			Guid guid = FastGuid.NewGuid();
-			ref var guidStruct = ref Unsafe.As<Guid, (LongStruct LONG0, LongStruct LONG1)>(ref guid);
-
-			ref var ticksStruct = ref Unsafe.As<DateTime, LongStruct>(ref timestampUtc);
 
 			// based on Microsoft SqlGuid.cs
 			// https://github.com/microsoft/referencesource/blob/5697c29004a34d80acdaf5742d7e699022c64ecd/System.Data/System/Data/SQLTypes/SQLGuid.cs
 
-			guidStruct.LONG1.B2 = ticksStruct.B7;
-			guidStruct.LONG1.B3 = ticksStruct.B6;
-			guidStruct.LONG1.B4 = ticksStruct.B5;
-			guidStruct.LONG1.B5 = ticksStruct.B4;
-			guidStruct.LONG1.B6 = ticksStruct.B3;
-			guidStruct.LONG1.B7 = ticksStruct.B2;
+			ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
+			ref var ticksStruct = ref Unsafe.As<DateTime, ulong>(ref timestampUtc);
 
-			guidStruct.LONG1.B0 = ticksStruct.B1;
-			guidStruct.LONG1.B1 = ticksStruct.B0;
+			guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticksStruct, 16));
 
 			return guid;
-		}// NewSqlServerGuid(DateTime)
+		}//NewSqlServerGuid(DateTime)
 
-		[StructLayout(LayoutKind.Sequential, Pack = 1, Size = sizeof(long))]
-		struct LongStruct
+		/// <summary>
+		/// Returns new Guid optimized for use as a PostgreSQL index key.
+		/// Guid structure is [8 bytes of PostgreSQL-ordered timestampUtc][8 random bytes].
+		/// Each Guid should be sequential within 100-nanosecond UtcNow precision limits.
+		/// 64-bit cryptographic randomness adds uniqueness for timestamp collisions and provides reasonable unguessability and protection against online brute-force attacks.
+		/// Designed for <see href="https://www.npgsql.org">Npgsql</see>, which auto-converts to big-endian wire format, resulting in correct PG::uuid value.
+		/// Explicit <see href="https://www.rfc-editor.org/rfc/rfc9562.html#name-uuid-version-7">UUID-v7-like</see> big-endian byte conversion of returned Guid should use
+		/// .ToByteArray(bigEndian:true) or .TryWriteBytes(destinationSpan, bigEndian:true).
+		/// </summary>
+		/// <returns>Guid for PostgreSQL index key.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Guid NewPostgreSqlGuid() => NewPostgreSqlGuid(DateTime.UtcNow);
+
+		/// <summary>
+		/// Returns new Guid optimized for use as a PostgreSQL index key.
+		/// Guid structure is [8 bytes of PostgreSQL-ordered timestampUtc][8 random bytes].
+		/// 64-bit cryptographic randomness adds uniqueness for timestamp collisions and provides reasonable unguessability and protection against online brute-force attacks.
+		/// Designed for <see href="https://www.npgsql.org">Npgsql</see>, which auto-converts to big-endian wire format, resulting in correct PG::uuid value.
+		/// Explicit <see href="https://www.rfc-editor.org/rfc/rfc9562.html#name-uuid-version-7">UUID-v7-like</see> big-endian byte conversion of returned Guid should use
+		/// .ToByteArray(bigEndian:true) or .TryWriteBytes(destinationSpan, bigEndian:true).
+		/// </summary>
+		/// <param name="timestampUtc">UTC timestamp.</param>
+		/// <returns>Guid for PostgreSQL index key.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Guid NewPostgreSqlGuid(DateTime timestampUtc)
 		{
-			public byte B0;
-			public byte B1;
-			public byte B2;
-			public byte B3;
-			public byte B4;
-			public byte B5;
-			public byte B6;
-			public byte B7;
-		}//struct LongStruct
+			Guid guid = FastGuid.NewGuid();
 
-		/// <summary>Helper methods for Guids generated by <see cref="NewSqlServerGuid"/>.</summary>
+			// PostgreSQL compares GUIDs as byte arrays, using memcmp
+			// https://doxygen.postgresql.org/uuid_8c.html#aae2aef5e86c79c563f02a5cee13d1708
+
+			ref var guidStruct = ref Unsafe.As<Guid, (int, short, short)>(ref guid);
+			ref var ticksStruct = ref Unsafe.As<DateTime, (int, int)>(ref timestampUtc);
+			ref var shortStruct = ref Unsafe.As<int, (short, short)>(ref ticksStruct.Item1);
+
+			guidStruct.Item1 = ticksStruct.Item2;
+			guidStruct.Item2 = shortStruct.Item2;
+			guidStruct.Item3 = shortStruct.Item1;
+
+			return guid;
+		}//NewPostgreSqlGuid()
+
+		static readonly Guid AllBitsSet = new Guid(uint.MaxValue, ushort.MaxValue, ushort.MaxValue,
+			byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+
+		/// <summary>Helper methods for Guids generated by <see cref="NewSqlServerGuid()"/>.</summary>
 		public static class SqlServer
 		{
-			/// <summary>Extracts SqlServer guid creation timestamp (UTC). Full <see cref="DateTime.UtcNow"/> precision.</summary>
-			/// <param name="guid">Guid generated by <see cref="NewSqlServerGuid"/>.</param>
+			/// <summary>Extracts SqlServer Guid creation timestamp (UTC). Full <see cref="DateTime.UtcNow"/> precision.</summary>
+			/// <param name="guid">Guid generated by <see cref="NewSqlServerGuid()"/>.</param>
 			/// <returns>SqlServer Guid creation timestamp.</returns>
 			public static DateTime GetTimestamp(Guid guid)
 			{
-				ref (LongStruct, LongStruct) longStructs = ref Unsafe.As<Guid, (LongStruct, LongStruct)>(ref guid);
-				longStructs.Item1.B0 = longStructs.Item2.B1;
-				longStructs.Item1.B1 = longStructs.Item2.B0;
-				longStructs.Item1.B2 = longStructs.Item2.B7;
-				longStructs.Item1.B3 = longStructs.Item2.B6;
-				longStructs.Item1.B4 = longStructs.Item2.B5;
-				longStructs.Item1.B5 = longStructs.Item2.B4;
-				longStructs.Item1.B6 = longStructs.Item2.B3;
-				longStructs.Item1.B7 = longStructs.Item2.B2;
-
-				return Unsafe.As<LongStruct, DateTime>(ref longStructs.Item1);
+				ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
+				var ulongStruct = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(guidStruct.Item2, 16));
+				return Unsafe.As<ulong, DateTime>(ref ulongStruct);
 			}// GetTimestamp()
 
 			/// <summary>Returns the *smallest* Guid for a given timestamp (useful for time-based database range searches).</summary>
 			public static Guid MinGuidForTimestamp(DateTime timestampUtc)
 			{
 				Guid guid = default;
-				ref (ulong, LongStruct) guidLSRef = ref Unsafe.As<Guid, (ulong, LongStruct)>(ref guid);
-				ref LongStruct tsLSRef = ref Unsafe.As<DateTime, LongStruct>(ref timestampUtc);
+				ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
+				ref var ticksStruct = ref Unsafe.As<DateTime, ulong>(ref timestampUtc);
 
-				guidLSRef.Item2.B2 = tsLSRef.B7;
-				guidLSRef.Item2.B3 = tsLSRef.B6;
-				guidLSRef.Item2.B4 = tsLSRef.B5;
-				guidLSRef.Item2.B5 = tsLSRef.B4;
-				guidLSRef.Item2.B6 = tsLSRef.B3;
-				guidLSRef.Item2.B7 = tsLSRef.B2;
-				guidLSRef.Item2.B0 = tsLSRef.B1;
-				guidLSRef.Item2.B1 = tsLSRef.B0;
+				guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticksStruct, 16));
 
 				return guid;
 			}// MinGuidForTimestamp()
@@ -196,23 +212,60 @@ namespace SecurityDriven
 			/// <summary>Returns the *largest* Guid for a given timestamp (useful for time-based database range searches).</summary>
 			public static Guid MaxGuidForTimestamp(DateTime timestampUtc)
 			{
-				Guid guid = default;
-				ref (ulong, LongStruct) guidLSRef = ref Unsafe.As<Guid, (ulong, LongStruct)>(ref guid);
-				ref LongStruct tsLSRef = ref Unsafe.As<DateTime, LongStruct>(ref timestampUtc);
+				Guid guid = AllBitsSet;
+				ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
+				ref var ticksStruct = ref Unsafe.As<DateTime, ulong>(ref timestampUtc);
 
-				guidLSRef.Item1 = ulong.MaxValue;
-
-				guidLSRef.Item2.B2 = tsLSRef.B7;
-				guidLSRef.Item2.B3 = tsLSRef.B6;
-				guidLSRef.Item2.B4 = tsLSRef.B5;
-				guidLSRef.Item2.B5 = tsLSRef.B4;
-				guidLSRef.Item2.B6 = tsLSRef.B3;
-				guidLSRef.Item2.B7 = tsLSRef.B2;
-				guidLSRef.Item2.B0 = tsLSRef.B1;
-				guidLSRef.Item2.B1 = tsLSRef.B0;
+				guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticksStruct, 16));
 
 				return guid;
 			}// MaxGuidForTimestamp()
-		}// inner class SqlServer
+		}// static class SqlServer
+
+		/// <summary>Helper methods for Guids generated by <see cref="NewPostgreSqlGuid()"/>.</summary>
+		public static class PostgreSql
+		{
+			/// <summary>Extracts PostgreSql Guid creation timestamp (UTC). Full <see cref="DateTime.UtcNow"/> precision.</summary>
+			/// <param name="guid">Guid generated by <see cref="NewPostgreSqlGuid()"/>.</param>
+			/// <returns>PostgreSql Guid creation timestamp.</returns>
+			public static DateTime GetTimestamp(Guid guid)
+			{
+				ref var guidTimestamp = ref Unsafe.As<Guid, (uint, ushort, ushort)>(ref guid);
+				ulong ticksStruct = ((ulong)guidTimestamp.Item1 << 32) | ((uint)guidTimestamp.Item2 << 16) | guidTimestamp.Item3;
+
+				return Unsafe.As<ulong, DateTime>(ref ticksStruct);
+			}// GetTimestamp()
+
+			/// <summary>Returns the *smallest* Guid for a given timestamp (useful for time-based database range searches).</summary>
+			public static Guid MinGuidForTimestamp(DateTime timestampUtc)
+			{
+				Guid guid = default;
+				ref var guidStruct = ref Unsafe.As<Guid, (int, short, short)>(ref guid);
+				ref var ticksStruct = ref Unsafe.As<DateTime, (int, int)>(ref timestampUtc);
+				ref var shortStruct = ref Unsafe.As<int, (short, short)>(ref ticksStruct.Item1);
+
+				guidStruct.Item1 = ticksStruct.Item2;
+				guidStruct.Item2 = shortStruct.Item2;
+				guidStruct.Item3 = shortStruct.Item1;
+
+				return guid;
+			}// MinGuidForTimestamp()
+
+			/// <summary>Returns the *largest* Guid for a given timestamp (useful for time-based database range searches).</summary>
+			public static Guid MaxGuidForTimestamp(DateTime timestampUtc)
+			{
+				Guid guid = AllBitsSet;
+				ref var guidStruct = ref Unsafe.As<Guid, (int, short, short)>(ref guid);
+				ref var ticksStruct = ref Unsafe.As<DateTime, (int, int)>(ref timestampUtc);
+				ref var shortStruct = ref Unsafe.As<int, (short, short)>(ref ticksStruct.Item1);
+
+				guidStruct.Item1 = ticksStruct.Item2;
+				guidStruct.Item2 = shortStruct.Item2;
+				guidStruct.Item3 = shortStruct.Item1;
+
+				return guid;
+			}// MaxGuidForTimestamp()
+		}// static class PostgreSql
+
 	}//class FastGuid
 }//ns
