@@ -148,7 +148,8 @@ Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
 | FastGuid_NewPostgreSqlGuid |  37.292 ns | 0.7558 ns | 1.0839 ns |   4x |
 
 ![image](https://github.com/user-attachments/assets/be64b268-56b4-40e2-9757-9205c6fea411)
----
+
+## Example: Fast random string generation
 
 ```csharp
 // Generate a 16-character random hexadecimal string
@@ -160,3 +161,19 @@ string sessionId = FastGuid.StringGen.Text32(32); // 160 bits of entropy
 // Generate a 32-character random Base64Url token
 string token = FastGuid.StringGen.Text64Url(32); // 192 bits of entropy
 ```
+
+## Benchmark #3: Fast random string generation
+```csharp
+static Guid FastGuid_NewGuid() => FastGuid.NewGuid();
+static string FastGuid_StringGen_Text16_16() => FastGuid.StringGen.Text16(16);
+static string FastGuid_StringGen_Text32_32() => FastGuid.StringGen.Text32(32);
+static string FastGuid_StringGen_Text64Url_32() => FastGuid.StringGen.Text64Url(32);
+```
+
+```csharp
+BenchmarkDotNet v0.13.8, Windows 10 (10.0.19045.5917/22H2/2022Update)
+Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK 10.0.100-preview.5.25277.114
+  [Host] : .NET 10.0.0 (10.0.25.27814), X64 RyuJIT AVX2
+```
+![image](https://github.com/user-attachments/assets/36eb7c85-e908-4099-8f27-82de8b24026d)
