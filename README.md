@@ -223,12 +223,13 @@ Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
 ```csharp
 Guid guid1 = FastGuid.NewGuid();
 string guidString = guid1.ToBase64Url(); // e.g. "Q29uZGVuc2VkQmFzZTY0VXJs"
-Guid guid2 = guidString.FromBase64Url(); // round-trip
-if (guid1 != guid2) throw new InvalidOperationException();
+Guid guid2 = guidString.FromBase64Url(); // round-trip; throws if guid string is invalid
+
+if (guid1 != guid2) throw new InvalidOperationException(); // not going to happen
 
 // Exception-free parsing:
-if (GuidExtensions.TryFromBase64Url(guidString, out Guid guid3))
+if (GuidExtensions.TryFromBase64Url(guidString, out Guid validGuid))
 {
-	// parsedGuid is valid
+	// validGuid is valid
 }
 ```
