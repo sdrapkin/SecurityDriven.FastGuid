@@ -92,7 +92,7 @@ namespace SecurityDriven
 			static void Throw_ArgumentException(string message) => throw new ArgumentException(message, nameof(base64Url));
 
 			if (base64Url.Length != BASE64URL_LENGTH)
-				Throw_ArgumentException(nameof(base64Url) + " must be exactly " + BASE64URL_LENGTH_STRING + " characters long");
+				Throw_ArgumentException($"{nameof(base64Url)} must be exactly {BASE64URL_LENGTH_STRING} characters long");
 
 			var decodeLookup = DecodeLookup;
 			Guid guid = default;
@@ -138,14 +138,14 @@ namespace SecurityDriven
 		/// <summary>
 		/// Tries to convert a Base64Url string to a Guid.
 		/// </summary>
-		/// <param name="base64UrlSpan">The Base64Url char span to convert.</param>
+		/// <param name="base64Url">The Base64Url char span to convert.</param>
 		/// <param name="guid">When this method returns, contains the Guid value equivalent to the Base64Url string, if the conversion succeeded, or <see cref="Guid.Empty"/> if it failed.</param>
-		/// <returns><c>true</c> if the string was converted successfully; otherwise, <c>false</c>.</returns>
-		public static bool TryFromBase64Url(ReadOnlySpan<char> base64UrlSpan, out Guid guid)
+		/// <returns><c>true</c> if the string was converted successfully; otherwise, <c>false</c>. Does not throw.</returns>
+		public static bool TryFromBase64Url(ReadOnlySpan<char> base64Url, out Guid guid)
 		{
 			guid = default;
 
-			if (base64UrlSpan.Length != BASE64URL_LENGTH)
+			if (base64Url.Length != BASE64URL_LENGTH)
 				return false;
 
 			var decodeLookup = DecodeLookup;
@@ -161,10 +161,10 @@ namespace SecurityDriven
 			// Decode groups of 4 characters to 3 bytes
 			for (int i = 0; i < LIMIT; i += 3)
 			{
-				b0 = decodeLookup[base64UrlSpan[j]];
-				b1 = decodeLookup[base64UrlSpan[j + 1]];
-				b2 = decodeLookup[base64UrlSpan[j + 2]];
-				b3 = decodeLookup[base64UrlSpan[j + 3]];
+				b0 = decodeLookup[base64Url[j]];
+				b1 = decodeLookup[base64Url[j + 1]];
+				b2 = decodeLookup[base64Url[j + 2]];
+				b3 = decodeLookup[base64Url[j + 3]];
 
 				if ((b0 | b1 | b2 | b3) >= 64)
 					return false;
@@ -176,8 +176,8 @@ namespace SecurityDriven
 			}//for
 
 			// Handle the remaining byte (padding case)
-			b0 = decodeLookup[base64UrlSpan[j]];
-			b1 = decodeLookup[base64UrlSpan[j + 1]];
+			b0 = decodeLookup[base64Url[j]];
+			b1 = decodeLookup[base64Url[j + 1]];
 
 			if ((b0 | b1) >= 64)
 				return false;
