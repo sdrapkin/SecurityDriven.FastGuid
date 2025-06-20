@@ -8,7 +8,7 @@
 		<Copyright>Copyright © $([System.DateTime]::UtcNow.ToString(yyyy)) Stan Drapkin</Copyright>
 		<RepositoryUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>1.3.0</Version>
+		<Version>1.4.0</Version>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>Inferno.snk</AssemblyOriginatorKeyFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -18,14 +18,15 @@
 			Performance improvements.
 			~10x faster than Guid.NewGuid().
 			Performance-tested on .NET 10, 9, 8, 7, 6, and 5.
-			New SqlServer Guid helper methods (timestamp extraction, range search) - see README.
-			New PostgreSQL Guid helper methods (timestamp extraction, range search) - see README.
-			New FastGuid.Fill() method for fast random byte generation - see README.
-			New FastGuid.StringGen APIs for fast, cryptographically strong random string generation (Base16, Base32, Base64, Base64Url) - see README.
+			New SQL Server GUID helper methods: timestamp extraction and range search.
+			New PostgreSQL GUID helper methods: timestamp extraction and range search.
+			New FastGuid.Fill() method for fast random byte generation.
+			New FastGuid.StringGen APIs for fast, cryptographically strong random string generation (Base16, Base32, Base64, Base64Url).
+			New fast GUID-to-string and string-to-GUID conversion methods (compact Base64Url representation).
 			Improved documentation.
 		</PackageReleaseNotes>
 		<Description>High-performance cryptographically strong replacement for Guid.NewGuid(), with database-optimized GUIDs and fast random string generation.</Description>
-		<PackageTags>Guid NewGuid Fast Random RandomGuid UUID Database SQLServer PostgreSQL RandomString Token Password Key</PackageTags>
+		<PackageTags>Guid NewGuid Fast Random RandomGuid UUID Database SQLServer PostgreSQL RandomString Token Password Key Base64Url</PackageTags>
 		<PackageProjectUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</PackageProjectUrl>
 		<AllowUnsafeBlocks>false</AllowUnsafeBlocks>
 		<LangVersion>latest</LangVersion>
