@@ -9,6 +9,9 @@ namespace SecurityDriven
 	/// <remarks>These methods allow efficient conversion between <see cref="Guid"/> and its compact Base64Url representation.</remarks>
 	public static class GuidExtensions
 	{
+		// Copyright (c) 2025 Stan Drapkin
+		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
+
 		const int BASE64URL_LENGTH = 22; // 16 bytes of Guid encoded in Base64Url is 22 characters long
 		const string BASE64URL_LENGTH_STRING = "22"; // for error messages
 		const int GUID_LENGTH = 16; // Length of a Guid in bytes
