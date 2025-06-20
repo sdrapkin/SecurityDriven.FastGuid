@@ -22,7 +22,7 @@ dotnet add package FastGuid
 	- ~1.5x (50%) to 9x (800%) faster for <512 bytes, otherwise calls RandomNumberGenerator.Fill()
 ## Static APIs for SQL Server- and PostgreSQL-optimized GUIDs
 * **`Guid FastGuid.NewSqlServerGuid()`**
-	- Returns a new Guid optimized for use as a SQL-Server clustered key.
+	- Returns a new Guid optimized for use as a SQL Server clustered key.
 	- Guid structure is `[8 random bytes]` `[8 bytes of SQL-Server-ordered DateTime.UtcNow]`
 	- Each Guid is sequential across 100-nanosecond `UtcNow` precision limits.
 	- 64-bit cryptographic randomness adds uniqueness for timestamp collisions and provides reasonable unguessability and protection against online brute-force attacks.
@@ -44,7 +44,8 @@ dotnet add package FastGuid
 	- __`Guid FastGuid.PostgreSql.MinGuidForTimestamp(DateTime timestampUtc)`__
 	- __`Guid FastGuid.PostgreSql.MaxGuidForTimestamp(DateTime timestampUtc)`__
 		- Return the *smallest*/*largest* Guid for a given timestamp (useful for time-based PostgreSQL range searches).
-## Static APIs for fast random string generation
+
+## Static APIs for fast random string generation <sup>(new)</sup>
 
 - **`string FastGuid.StringGen.Text16(int length)`**
     - Generates a random string using the Base16 (hex) alphabet.
@@ -55,6 +56,46 @@ dotnet add package FastGuid
 - **`string FastGuid.StringGen.Text64Url(int length)`**
     - Generates a random string using the Base64Url alphabet (RFC 4648, URL-safe).
 - All methods use cryptographically strong randomness and are suitable for passwords, tokens, keys, and identifiers.
+
+## Fast GUID-to-string and string-to-GUID conversion <sup>(new)</sup>
+
+New fast extension methods for efficient conversion between GUIDs and compact Base64Url strings:
+
+- **`string Guid.ToBase64Url()`**
+    - Converts a Guid to a 22-character Base64Url string (URL-safe, no padding).
+    - Useful for compact GUID-as-string identifiers in URLs, tokens, or text fields.
+
+- **`Guid string.FromBase64Url()`**
+    - Converts a 22-character Base64Url string back to a Guid.
+    - Throws `ArgumentException` if the input is invalid.
+
+- **`bool GuidExtensions.TryFromBase64Url(ReadOnlySpan<char> base64Url, out Guid guid)`**
+    - Tries to convert a Base64Url string to a Guid.
+    - Returns `true` if successful, `false` otherwise (never throws).
+
+## API Summary
+| API Signature                                                                 | Description                                                                                      |
+|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| `Guid FastGuid.NewGuid()`                                                     | Returns a cryptographically strong random GUID.                                                  |
+| `void FastGuid.Fill(Span<byte> data)`                                         | Fills a span with cryptographically strong random bytes.                                         |
+| `Guid FastGuid.NewSqlServerGuid()`                                            | Returns a GUID optimized for use as a SQL Server clustered key (uses current UTC timestamp).     |
+| `Guid FastGuid.NewSqlServerGuid(DateTime timestampUtc)`                       | Returns a SQL Server-optimized GUID for a specific UTC timestamp.                                |
+| `Guid FastGuid.NewPostgreSqlGuid()`                                           | Returns a GUID optimized for use as a PostgreSQL key (uses current UTC timestamp).               |
+| `Guid FastGuid.NewPostgreSqlGuid(DateTime timestampUtc)`                      | Returns a PostgreSQL-optimized GUID for a specific UTC timestamp.                                |
+| `DateTime FastGuid.SqlServer.GetTimestamp(Guid guid)`                         | Extracts the creation timestamp (UTC) from a SQL Server GUID.                                    |
+| `Guid FastGuid.SqlServer.MinGuidForTimestamp(DateTime timestampUtc)`          | Returns the smallest SQL Server GUID for a given timestamp.                                      |
+| `Guid FastGuid.SqlServer.MaxGuidForTimestamp(DateTime timestampUtc)`          | Returns the largest SQL Server GUID for a given timestamp.                                       |
+| `DateTime FastGuid.PostgreSql.GetTimestamp(Guid guid)`                        | Extracts the creation timestamp (UTC) from a PostgreSQL GUID.                                    |
+| `Guid FastGuid.PostgreSql.MinGuidForTimestamp(DateTime timestampUtc)`         | Returns the smallest PostgreSQL GUID for a given timestamp.                                      |
+| `Guid FastGuid.PostgreSql.MaxGuidForTimestamp(DateTime timestampUtc)`         | Returns the largest PostgreSQL GUID for a given timestamp.                                       |
+| `string FastGuid.StringGen.Text16(int length)`                                | Generates a random string using the Base16 (hex) alphabet.                                       |
+| `string FastGuid.StringGen.Text32(int length)`                                | Generates a random string using the Base32 alphabet (RFC 4648).                                  |
+| `string FastGuid.StringGen.Text64(int length)`                                | Generates a random string using the Base64 alphabet (RFC 4648).                                  |
+| `string FastGuid.StringGen.Text64Url(int length)`                             | Generates a random string using the Base64Url alphabet (RFC 4648, URL-safe).                     |
+| `string Guid.ToBase64Url()` (`Guid` extension)                                | Converts a GUID to a 22-character Base64Url string (URL-safe, no padding).                       |
+| `Guid string.FromBase64Url()` (`string` extension)                            | Converts a 22-character Base64Url string back to a GUID.                                         |
+| `bool GuidExtensions.TryFromBase64Url(ReadOnlySpan<char> base64Url, out Guid guid)` | Tries to convert a Base64Url string to a GUID. Returns true if successful, false otherwise.      |
+
 ## Usage
 Replace all calls to [`Guid.NewGuid()`](https://grep.app/search?q=Guid.NewGuid%28%29&filter[lang][0]=C%23) with `FastGuid.NewGuid()`
 
@@ -85,9 +126,9 @@ FastGuid.Fill(key); // 20 nanoseconds (7x faster)
 ```
 > [!IMPORTANT]  
 > [`Guid.CreateVersion7()`](https://learn.microsoft.com/en-us/dotnet/api/system.guid.createversion7)
-> causes page-fragmentation in SQL-Server and PostgreSQL.
+> causes page-fragmentation in SQL Server and PostgreSQL.
 > DO NOT USE `Guid.CreateVersion7()` for database Guids. Yes, I have tested it with
-> SQL-Server and PostgreSQL and it causes severe page-fragmentation.
+> SQL Server and PostgreSQL and it causes severe page-fragmentation.
 > Use `FastGuid.NewSqlServerGuid()` or `FastGuid.NewPostgreSqlGuid()` instead.
 > Internet advice to use `Guid.CreateVersion7()` for database Guids is wrong.
 
@@ -177,3 +218,17 @@ Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
   [Host] : .NET 10.0.0 (10.0.25.27814), X64 RyuJIT AVX2
 ```
 ![image](https://github.com/user-attachments/assets/36eb7c85-e908-4099-8f27-82de8b24026d)
+
+## Example: Extension methods for Guid
+```csharp
+Guid guid1 = FastGuid.NewGuid();
+string guidString = guid1.ToBase64Url(); // e.g. "Q29uZGVuc2VkQmFzZTY0VXJs"
+Guid guid2 = guidString.FromBase64Url(); // round-trip
+if (guid1 != guid2) throw new InvalidOperationException();
+
+// Exception-free parsing:
+if (GuidExtensions.TryFromBase64Url(guidString, out Guid guid3))
+{
+	// parsedGuid is valid
+}
+```
