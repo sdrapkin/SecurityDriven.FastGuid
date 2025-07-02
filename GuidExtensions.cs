@@ -53,19 +53,19 @@ namespace SecurityDriven
 			});//string.Create()
 		}//ToBase64Url()
 
-		/*
-			// Create lookup table for decoding
-			Span<byte> decodeLookup = stackalloc byte[128];
-			decodeLookup.Fill(255); // Initialize with invalid value
+		/********************************************************
+			c# code to generate the DecodeLookup table:
+			Span<byte> decodeLookup = stackalloc byte[byte.MaxValue+1];
+			decodeLookup.Fill(0xFF); // Initialize with invalid value
 
-			for (i = 0; i < BASE64URL_ALPHABET.Length; i++)
-			{
-				decodeLookup[BASE64URL_ALPHABET[i]] = (byte)i;
-			}
+			for (var i = 0; i < BASE64URL_ALPHABET_STRING.Length; i++)
+			{ decodeLookup[BASE64URL_ALPHABET_STRING[i]] = (byte)i;	}
 
-			"".Dump(); for (i = 0; i < decodeLookup.Length; ++i) { Console.Write($"0x{decodeLookup[i]:X2},"); if ((i + 1) % 8 == 0) "".Dump(); }
-			"".Dump();
-		*/
+			"[".Dump();
+			for (var i = 0; i < decodeLookup.Length; ++i)
+				{ Console.Write($"0x{decodeLookup[i]:X2},"); if ((i + 1) % 8 == 0) "".Dump(); }
+			"]".Dump();
+		*********************************************************/
 
 		// Lookup table for decoding Base64Url characters to their byte values.
 		static ReadOnlySpan<byte> DecodeLookup => [
@@ -84,7 +84,23 @@ namespace SecurityDriven
 			0xFF,0x1A,0x1B,0x1C,0x1D,0x1E,0x1F,0x20,
 			0x21,0x22,0x23,0x24,0x25,0x26,0x27,0x28,
 			0x29,0x2A,0x2B,0x2C,0x2D,0x2E,0x2F,0x30,
-			0x31,0x32,0x33,0xFF,0xFF,0xFF,0xFF,0xFF];
+			0x31,0x32,0x33,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF];
 
 		/// <summary>Converts a Base64Url string back to a Guid.</summary>
 		/// <param name="base64Url">The Base64Url string to convert.</param>
@@ -112,13 +128,12 @@ namespace SecurityDriven
 			// Decode groups of 4 characters to 3 bytes
 			for (int i = 0; i < LIMIT; i += 3)
 			{
-				b0 = decodeLookup[input[j]];
-				b1 = decodeLookup[input[j + 1]];
-				b2 = decodeLookup[input[j + 2]];
-				b3 = decodeLookup[input[j + 3]];
+				b0 = decodeLookup[(byte)input[j]];
+				b1 = decodeLookup[(byte)input[j + 1]];
+				b2 = decodeLookup[(byte)input[j + 2]];
+				b3 = decodeLookup[(byte)input[j + 3]];
 
-				if ((b0 | b1 | b2 | b3) >= 64)
-					Throw_ArgumentException("Invalid Base64Url character");
+				if ((b0 | b1 | b2 | b3) >= 64) Throw_ArgumentException("Invalid Base64Url character");
 
 				guidBytes[i] = (byte)((b0 << 2) | (b1 >> 4));
 				guidBytes[i + 1] = (byte)((b1 << 4) | (b2 >> 2));
@@ -127,14 +142,12 @@ namespace SecurityDriven
 			}//for
 
 			// Handle the remaining byte (padding case)
-			b0 = decodeLookup[input[j]];
-			b1 = decodeLookup[input[j + 1]];
+			b0 = decodeLookup[(byte)input[j]];
+			b1 = decodeLookup[(byte)input[j + 1]];
 
-			if ((b0 | b1) >= 64)
-				Throw_ArgumentException("Invalid Base64Url character");
+			if ((b0 | b1) >= 64) Throw_ArgumentException("Invalid Base64Url character");
 
 			guidBytes[LIMIT] = (byte)((b0 << 2) | (b1 >> 4));
-
 			return guid;
 		}//FromBase64Url()
 
@@ -164,13 +177,12 @@ namespace SecurityDriven
 			// Decode groups of 4 characters to 3 bytes
 			for (int i = 0; i < LIMIT; i += 3)
 			{
-				b0 = decodeLookup[base64Url[j]];
-				b1 = decodeLookup[base64Url[j + 1]];
-				b2 = decodeLookup[base64Url[j + 2]];
-				b3 = decodeLookup[base64Url[j + 3]];
+				b0 = decodeLookup[(byte)base64Url[j]];
+				b1 = decodeLookup[(byte)base64Url[j + 1]];
+				b2 = decodeLookup[(byte)base64Url[j + 2]];
+				b3 = decodeLookup[(byte)base64Url[j + 3]];
 
-				if ((b0 | b1 | b2 | b3) >= 64)
-					return false;
+				if ((b0 | b1 | b2 | b3) >= 64) return false;
 
 				guidBytes[i] = (byte)((b0 << 2) | (b1 >> 4));
 				guidBytes[i + 1] = (byte)((b1 << 4) | (b2 >> 2));
@@ -179,14 +191,12 @@ namespace SecurityDriven
 			}//for
 
 			// Handle the remaining byte (padding case)
-			b0 = decodeLookup[base64Url[j]];
-			b1 = decodeLookup[base64Url[j + 1]];
+			b0 = decodeLookup[(byte)base64Url[j]];
+			b1 = decodeLookup[(byte)base64Url[j + 1]];
 
-			if ((b0 | b1) >= 64)
-				return false;
+			if ((b0 | b1) >= 64) return false;
 
 			guidBytes[LIMIT] = (byte)((b0 << 2) | (b1 >> 4));
-
 			return true;
 		}//TryFromBase64Url()
 
