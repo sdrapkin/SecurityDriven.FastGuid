@@ -30,23 +30,19 @@ namespace SecurityDriven
 				const int LENGTH_MOD_3 = 1; // 16 % 3 = 1;
 				const int LIMIT = GUID_LENGTH - LENGTH_MOD_3;
 
-				int i, j = 0;
-				byte b0, b1, b2;
+				int j = 0;
+				byte b0 = inByteSpan[LIMIT];
 
-				for (i = 0; i < LIMIT; i += 3) // takes 3 bytes from inArray and inserts 4 bytes into output
+				for (int i = 0; i < LIMIT; i += 3) // takes 3 bytes from inArray and inserts 4 bytes into output
 				{
-					b0 = inByteSpan[i];
-					b1 = inByteSpan[i + 1];
-					b2 = inByteSpan[i + 2];
+					int val = (inByteSpan[i] << 16) | (inByteSpan[i + 1] << 8) | (inByteSpan[i + 2]);
 
-					outCharSpan[j] = BASE64URL_ALPHABET[b0 >> 2];
-					outCharSpan[j + 1] = BASE64URL_ALPHABET[((b0 & 0x03) << 4) | (b1 >> 4)];
-					outCharSpan[j + 2] = BASE64URL_ALPHABET[((b1 & 0x0f) << 2) | (b2 >> 6)];
-					outCharSpan[j + 3] = BASE64URL_ALPHABET[b2 & 0x3f];
+					outCharSpan[j] = BASE64URL_ALPHABET[val >> 18 & 0x3F];
+					outCharSpan[j + 1] = BASE64URL_ALPHABET[val >> 12 & 0x3F];
+					outCharSpan[j + 2] = BASE64URL_ALPHABET[val >> 06 & 0x3F];
+					outCharSpan[j + 3] = BASE64URL_ALPHABET[val & 0x3F];
 					j += 4;
 				}//for
-
-				b0 = inByteSpan[LIMIT];
 
 				outCharSpan[j] = BASE64URL_ALPHABET[b0 >> 2];
 				outCharSpan[j + 1] = BASE64URL_ALPHABET[(b0 & 0x03) << 4];
