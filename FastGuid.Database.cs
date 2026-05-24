@@ -7,7 +7,7 @@ namespace SecurityDriven
 {
 	public static partial class FastGuid
 	{
-		// Copyright (c) 2025 Stan Drapkin
+		// Copyright (c) 2026 Stan Drapkin
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
 
 		/// <summary>

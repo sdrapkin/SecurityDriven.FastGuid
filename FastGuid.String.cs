@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SecurityDriven
 {
 	public static partial class FastGuid
 	{
-		// Copyright (c) 2025 Stan Drapkin  
+		// Copyright (c) 2026 Stan Drapkin  
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid  
 
 		/// <summary>Generates random text strings using Base16/Base32/Base64/Base64Url alphabets.</summary>  
@@ -43,8 +44,17 @@ namespace SecurityDriven
 						Span<byte> byteSpan = MemoryMarshal.AsBytes(charSpan).Slice(charSpan.Length);
 						FastGuid.Fill(byteSpan);
 
+						// Establish direct zero-bounds references
+						ref char charSpan0Ref = ref MemoryMarshal.GetReference(charSpan);
+						ref byte byteSpan0Ref = ref MemoryMarshal.GetReference(byteSpan);
+						ref char alphabet256Span0Ref = ref MemoryMarshal.GetReference(_alphabet256.AsSpan());
+
 						for (int i = 0; i < charSpan.Length; ++i)
-							charSpan[i] = _alphabet256[byteSpan[i]];
+						{
+							// charSpan[i] = _alphabet256[byteSpan[i]];
+							Unsafe.Add(ref charSpan0Ref, i) = Unsafe.Add(ref alphabet256Span0Ref, (nint)Unsafe.Add(ref byteSpan0Ref, i)); // strips out JIT-inserted bound-checks
+
+						}
 					});
 
 			/// <summary>Generates a random text string using Base16 alphabet.</summary>  

@@ -9,7 +9,7 @@ namespace SecurityDriven
 	/// <remarks>These methods allow efficient conversion between <see cref="Guid"/> and its compact Base64Url representation.</remarks>
 	public static class GuidExtensions
 	{
-		// Copyright (c) 2025 Stan Drapkin
+		// Copyright (c) 2026 Stan Drapkin
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
 
 		const int BASE64URL_LENGTH = 22; // 16 bytes of Guid encoded in Base64Url is 22 characters long
@@ -24,28 +24,31 @@ namespace SecurityDriven
 		{
 			return string.Create(BASE64URL_LENGTH, guid, static (outCharSpan, guid) =>
 			{
-				var inByteSpan = MemoryMarshal.CreateReadOnlySpan<byte>(ref Unsafe.As<Guid, byte>(ref guid), GUID_LENGTH);
-				ReadOnlySpan<char> BASE64URL_ALPHABET = BASE64URL_ALPHABET_STRING;
+				ref byte inRef = ref Unsafe.As<Guid, byte>(ref guid);
+				ref char outRef = ref MemoryMarshal.GetReference(outCharSpan);
+
+				ReadOnlySpan<char> alphabet = BASE64URL_ALPHABET_STRING;
+				ref char alphaRef = ref MemoryMarshal.GetReference(alphabet);
 
 				const int LENGTH_MOD_3 = 1; // 16 % 3 = 1;
-				const int LIMIT = GUID_LENGTH - LENGTH_MOD_3;
+				const int LIMIT = GUID_LENGTH - LENGTH_MOD_3; // 15
 
 				int j = 0;
-				byte b0 = inByteSpan[LIMIT];
-
 				for (int i = 0; i < LIMIT; i += 3) // takes 3 bytes from inArray and inserts 4 bytes into output
 				{
-					int val = (inByteSpan[i] << 16) | (inByteSpan[i + 1] << 8) | (inByteSpan[i + 2]);
+					int val = (Unsafe.Add(ref inRef, i) << 16) | (Unsafe.Add(ref inRef, i + 1) << 8) | Unsafe.Add(ref inRef, i + 2);
 
-					outCharSpan[j] = BASE64URL_ALPHABET[val >> 18 & 0x3F];
-					outCharSpan[j + 1] = BASE64URL_ALPHABET[val >> 12 & 0x3F];
-					outCharSpan[j + 2] = BASE64URL_ALPHABET[val >> 06 & 0x3F];
-					outCharSpan[j + 3] = BASE64URL_ALPHABET[val & 0x3F];
+					// Unsafe.Add completely removes the JIT bounds-checking overhead on string generation
+					Unsafe.Add(ref outRef, j) = Unsafe.Add(ref alphaRef, val >> 18 & 0x3F);
+					Unsafe.Add(ref outRef, j + 1) = Unsafe.Add(ref alphaRef, val >> 12 & 0x3F);
+					Unsafe.Add(ref outRef, j + 2) = Unsafe.Add(ref alphaRef, val >> 06 & 0x3F);
+					Unsafe.Add(ref outRef, j + 3) = Unsafe.Add(ref alphaRef, val & 0x3F);
 					j += 4;
 				}//for
 
-				outCharSpan[j] = BASE64URL_ALPHABET[b0 >> 2];
-				outCharSpan[j + 1] = BASE64URL_ALPHABET[(b0 & 0x03) << 4];
+				byte b0 = Unsafe.Add(ref inRef, LIMIT);
+				Unsafe.Add(ref outRef, j) = Unsafe.Add(ref alphaRef, b0 >> 2);
+				Unsafe.Add(ref outRef, j + 1) = Unsafe.Add(ref alphaRef, (b0 & 0x03) << 4);
 			});//string.Create()
 		}//ToBase64Url()
 
@@ -109,11 +112,11 @@ namespace SecurityDriven
 			if (base64Url.Length != BASE64URL_LENGTH)
 				Throw_ArgumentException($"{nameof(base64Url)} must be exactly {BASE64URL_LENGTH_STRING} characters long");
 
-			var decodeLookup = DecodeLookup;
 			Guid guid = default;
-			Span<byte> guidBytes = MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref guid), GUID_LENGTH);
 
-			ReadOnlySpan<char> input = base64Url.AsSpan();
+			ref char inputRef = ref MemoryMarshal.GetReference(base64Url.AsSpan());
+			ref byte lookupRef = ref MemoryMarshal.GetReference(DecodeLookup);
+			ref byte guidByteRef = ref Unsafe.As<Guid, byte>(ref guid);
 
 			const int LENGTH_MOD_3 = 1; // 16 % 3 = 1;
 			const int LIMIT = GUID_LENGTH - LENGTH_MOD_3; // 15
@@ -124,26 +127,38 @@ namespace SecurityDriven
 			// Decode groups of 4 characters to 3 bytes
 			for (int i = 0; i < LIMIT; i += 3)
 			{
-				b0 = decodeLookup[(byte)input[j]];
-				b1 = decodeLookup[(byte)input[j + 1]];
-				b2 = decodeLookup[(byte)input[j + 2]];
-				b3 = decodeLookup[(byte)input[j + 3]];
+				char c0 = Unsafe.Add(ref inputRef, j);
+				char c1 = Unsafe.Add(ref inputRef, j + 1);
+				char c2 = Unsafe.Add(ref inputRef, j + 2);
+				char c3 = Unsafe.Add(ref inputRef, j + 3);
+
+				if (((c0 | c1 | c2 | c3) & 0xFF80) != 0) Throw_ArgumentException("Invalid Base64Url character");
+
+				b0 = Unsafe.Add(ref lookupRef, (nint)c0);
+				b1 = Unsafe.Add(ref lookupRef, (nint)c1);
+				b2 = Unsafe.Add(ref lookupRef, (nint)c2);
+				b3 = Unsafe.Add(ref lookupRef, (nint)c3);
 
 				if ((b0 | b1 | b2 | b3) >= 64) Throw_ArgumentException("Invalid Base64Url character");
 
-				guidBytes[i] = (byte)((b0 << 2) | (b1 >> 4));
-				guidBytes[i + 1] = (byte)((b1 << 4) | (b2 >> 2));
-				guidBytes[i + 2] = (byte)((b2 << 6) | b3);
+				Unsafe.Add(ref guidByteRef, i) = (byte)((b0 << 2) | (b1 >> 4));
+				Unsafe.Add(ref guidByteRef, i + 1) = (byte)((b1 << 4) | (b2 >> 2));
+				Unsafe.Add(ref guidByteRef, i + 2) = (byte)((b2 << 6) | b3);
 				j += 4;
 			}//for
 
 			// Handle the remaining byte (padding case)
-			b0 = decodeLookup[(byte)input[j]];
-			b1 = decodeLookup[(byte)input[j + 1]];
+			char c0_rem = Unsafe.Add(ref inputRef, j);
+			char c1_rem = Unsafe.Add(ref inputRef, j + 1);
+
+			if (((c0_rem | c1_rem) & 0xFF80) != 0) Throw_ArgumentException("Invalid Base64Url character");
+
+			b0 = Unsafe.Add(ref lookupRef, (nint)c0_rem);
+			b1 = Unsafe.Add(ref lookupRef, (nint)c1_rem);
 
 			if ((b0 | b1) >= 64) Throw_ArgumentException("Invalid Base64Url character");
 
-			guidBytes[LIMIT] = (byte)((b0 << 2) | (b1 >> 4));
+			Unsafe.Add(ref guidByteRef, LIMIT) = (byte)((b0 << 2) | (b1 >> 4));
 			return guid;
 		}//FromBase64Url()
 
@@ -160,9 +175,9 @@ namespace SecurityDriven
 			if (base64Url.Length != BASE64URL_LENGTH)
 				return false;
 
-			var decodeLookup = DecodeLookup;
-
-			Span<byte> guidBytes = MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref guid), GUID_LENGTH);
+			ref char inputRef = ref MemoryMarshal.GetReference(base64Url);
+			ref byte lookupRef = ref MemoryMarshal.GetReference(DecodeLookup);
+			ref byte guidByteRef = ref Unsafe.As<Guid, byte>(ref guid);
 
 			const int LENGTH_MOD_3 = 1; // 16 % 3 = 1;
 			const int LIMIT = GUID_LENGTH - LENGTH_MOD_3; // 15
@@ -173,26 +188,38 @@ namespace SecurityDriven
 			// Decode groups of 4 characters to 3 bytes
 			for (int i = 0; i < LIMIT; i += 3)
 			{
-				b0 = decodeLookup[(byte)base64Url[j]];
-				b1 = decodeLookup[(byte)base64Url[j + 1]];
-				b2 = decodeLookup[(byte)base64Url[j + 2]];
-				b3 = decodeLookup[(byte)base64Url[j + 3]];
+				char c0 = Unsafe.Add(ref inputRef, j);
+				char c1 = Unsafe.Add(ref inputRef, j + 1);
+				char c2 = Unsafe.Add(ref inputRef, j + 2);
+				char c3 = Unsafe.Add(ref inputRef, j + 3);
+
+				if (((c0 | c1 | c2 | c3) & 0xFF80) != 0) return false;
+
+				b0 = Unsafe.Add(ref lookupRef, (nint)c0);
+				b1 = Unsafe.Add(ref lookupRef, (nint)c1);
+				b2 = Unsafe.Add(ref lookupRef, (nint)c2);
+				b3 = Unsafe.Add(ref lookupRef, (nint)c3);
 
 				if ((b0 | b1 | b2 | b3) >= 64) return false;
 
-				guidBytes[i] = (byte)((b0 << 2) | (b1 >> 4));
-				guidBytes[i + 1] = (byte)((b1 << 4) | (b2 >> 2));
-				guidBytes[i + 2] = (byte)((b2 << 6) | b3);
+				Unsafe.Add(ref guidByteRef, i) = (byte)((b0 << 2) | (b1 >> 4));
+				Unsafe.Add(ref guidByteRef, i + 1) = (byte)((b1 << 4) | (b2 >> 2));
+				Unsafe.Add(ref guidByteRef, i + 2) = (byte)((b2 << 6) | b3);
 				j += 4;
 			}//for
 
 			// Handle the remaining byte (padding case)
-			b0 = decodeLookup[(byte)base64Url[j]];
-			b1 = decodeLookup[(byte)base64Url[j + 1]];
+			char c0_rem = Unsafe.Add(ref inputRef, j);
+			char c1_rem = Unsafe.Add(ref inputRef, j + 1);
+
+			if (((c0_rem | c1_rem) & 0xFF80) != 0) return false;
+
+			b0 = Unsafe.Add(ref lookupRef, (nint)c0_rem);
+			b1 = Unsafe.Add(ref lookupRef, (nint)c1_rem);
 
 			if ((b0 | b1) >= 64) return false;
 
-			guidBytes[LIMIT] = (byte)((b0 << 2) | (b1 >> 4));
+			Unsafe.Add(ref guidByteRef, LIMIT) = (byte)((b0 << 2) | (b1 >> 4));
 			return true;
 		}//TryFromBase64Url()
 

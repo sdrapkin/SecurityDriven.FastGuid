@@ -8,7 +8,7 @@
 		<Copyright>Copyright © $([System.DateTime]::UtcNow.ToString(yyyy)) Stan Drapkin</Copyright>
 		<RepositoryUrl>https://github.com/sdrapkin/SecurityDriven.FastGuid</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>1.4.1</Version>
+		<Version>1.4.2</Version>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>Inferno.snk</AssemblyOriginatorKeyFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -23,6 +23,8 @@
 			New FastGuid.Fill() method for fast random byte generation.
 			New FastGuid.StringGen APIs for fast, cryptographically strong random string generation (Base16, Base32, Base64, Base64Url).
 			New fast GUID-to-string and string-to-GUID conversion methods (compact Base64Url representation).
+			New FastGuid.UUID APIs for UUIDv7 generation and timestamp extraction.
+			New AWS Lambda SnapStart support.
 			Improved documentation.
 		</PackageReleaseNotes>
 		<Description>High-performance cryptographically strong replacement for Guid.NewGuid(), with database-optimized GUIDs and fast random string generation.</Description>
@@ -43,6 +45,7 @@
 
 	<ItemGroup>
 	  <None Remove="LICENSE.md" />
+	  <None Remove="CHANGES.md" />
 	</ItemGroup>
 
 	<ItemGroup>
