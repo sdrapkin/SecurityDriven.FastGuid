@@ -170,7 +170,18 @@ namespace SecurityDriven
 				guidsAsSpan[idx++] = default;
 			}//if
 			container._idx = idx;
-		}//Fill()
+		}//Fill(Span<byte>)
+
+		/// <summary>Fills a span with cryptographically strong random Guids.</summary>
+		/// <param name="data">The span to fill with cryptographically strong random Guids.</param>
+		/// <remarks>If <paramref name="data"/> is larger than 32 Guids, RandomNumberGenerator.Fill is used instead.</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Fill(Span<Guid> data)
+		{
+		if (data.Length == 0) return;
+		Span<byte> dataAsBytes = MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref MemoryMarshal.GetReference(data)), data.Length * GUID_SIZE_IN_BYTES);
+		Fill(dataAsBytes);
+		}//Fill(Span<Guid>)
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static void FillContainer(ref Container container)
