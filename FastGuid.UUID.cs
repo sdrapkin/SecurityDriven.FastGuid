@@ -44,7 +44,7 @@ namespace SecurityDriven
 			/// <returns>A new <see cref="Guid" /> according to RFC 9562, following the Version 7 format.</returns>
 			/// <remarks>
 			///     <para>Faster alternative to System.Guid.CreateVersion7().</para>
-			///     <para>This uses <see cref="DateTimeOffset.UtcNow" /> to determine the Unix Epoch timestamp source.</para>
+			///     <para>This uses <see cref="DateTime.UtcNow" /> to determine the Unix Epoch timestamp source.</para>
 			///     <para>This seeds the rand_a and rand_b sub-fields with random data.</para>
 			/// </remarks>
 			public static Guid CreateVersion7() => CreateVersion7(DateTime.UtcNow.Ticks);
