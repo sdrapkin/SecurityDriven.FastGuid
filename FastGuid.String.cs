@@ -71,6 +71,45 @@ namespace SecurityDriven
 
 			/// <summary>Generates a random text string using Base64Url alphabet.</summary>  
 			public static string Text64Url(int length) => TextAlphabet256(length, Base64Url_256);
+
+			/* TextDigits is implemented separately since 250 
+			 * is the largest multiple of 10 that fits in a byte,
+			 * ensuring unbiased generation by rejecting only
+			 * 6 out of 256 byte values (2.3% rejection rate). */
+
+			const string Digits10 = "0123456789";
+			const string Digits10_250 =
+				Digits10 + Digits10 + Digits10 + Digits10 + Digits10 +
+				Digits10 + Digits10 + Digits10 + Digits10 + Digits10 +
+				Digits10 + Digits10 + Digits10 + Digits10 + Digits10 +
+				Digits10 + Digits10 + Digits10 + Digits10 + Digits10 +
+				Digits10 + Digits10 + Digits10 + Digits10 + Digits10; // 250 chars
+
+			/// <summary>Generates an unbiased random decimal digit string.</summary>
+			public static string TextDigits(int length) =>
+				string.Create(length, Digits10_250, static (charSpan, _digits10_250) =>
+				{
+					const int BYTESPAN_LEN = 64;
+					Span<byte> byteSpan = stackalloc byte[BYTESPAN_LEN];
+					FastGuid.Fill(byteSpan);
+
+					ref char charSpan0Ref = ref MemoryMarshal.GetReference(charSpan);
+					ref byte byteSpan0Ref = ref MemoryMarshal.GetReference(byteSpan);
+					ref char digits10_250Span0Ref = ref MemoryMarshal.GetReference(_digits10_250.AsSpan());
+
+					int byteIdx = 0, charIdx = 0;
+					while (charIdx < charSpan.Length)
+					{
+						if (byteIdx == BYTESPAN_LEN)
+						{
+							FastGuid.Fill(byteSpan);
+							byteIdx = 0;
+						}
+						byte b = Unsafe.Add(ref byteSpan0Ref, byteIdx++);
+						if (b < 250)
+							Unsafe.Add(ref charSpan0Ref, charIdx++) = Unsafe.Add(ref digits10_250Span0Ref, (nint)b);
+					}
+				});
 		}// static class StringGen  
 	}//class FastGuid  
 }//ns
