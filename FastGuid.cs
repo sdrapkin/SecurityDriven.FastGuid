@@ -178,9 +178,9 @@ namespace SecurityDriven
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Fill(Span<Guid> data)
 		{
-		if (data.Length == 0) return;
-		Span<byte> dataAsBytes = MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref MemoryMarshal.GetReference(data)), data.Length * GUID_SIZE_IN_BYTES);
-		Fill(dataAsBytes);
+			if (data.Length == 0) return;
+			Span<byte> dataAsBytes = MemoryMarshal.CreateSpan<byte>(ref Unsafe.As<Guid, byte>(ref MemoryMarshal.GetReference(data)), data.Length * GUID_SIZE_IN_BYTES);
+			Fill(dataAsBytes);
 		}//Fill(Span<Guid>)
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
