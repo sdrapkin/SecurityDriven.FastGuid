@@ -36,9 +36,9 @@ namespace SecurityDriven
 			// https://github.com/microsoft/referencesource/blob/5697c29004a34d80acdaf5742d7e699022c64ecd/System.Data/System/Data/SQLTypes/SQLGuid.cs
 
 			ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
-			ref var ticksStruct = ref Unsafe.As<DateTime, ulong>(ref timestampUtc);
+			ulong ticks = (ulong)timestampUtc.Ticks; // strips DateTimeKind flags safely
 
-			guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticksStruct, 16));
+			guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticks, 16));
 
 			return guid;
 		}//NewSqlServerGuid(DateTime)
@@ -75,12 +75,11 @@ namespace SecurityDriven
 			// https://doxygen.postgresql.org/uuid_8c.html#aae2aef5e86c79c563f02a5cee13d1708
 
 			ref var guidStruct = ref Unsafe.As<Guid, (int, short, short)>(ref guid);
-			ref var ticksStruct = ref Unsafe.As<DateTime, (int, int)>(ref timestampUtc);
-			ref var shortStruct = ref Unsafe.As<int, (short, short)>(ref ticksStruct.Item1);
+			ulong ticks = (ulong)timestampUtc.Ticks; // strips DateTimeKind flags safely
 
-			guidStruct.Item1 = ticksStruct.Item2;
-			guidStruct.Item2 = shortStruct.Item2;
-			guidStruct.Item3 = shortStruct.Item1;
+			guidStruct.Item1 = (int)(ticks >> 32);
+			guidStruct.Item2 = (short)(ticks >> 16);
+			guidStruct.Item3 = (short)ticks;
 
 			return guid;
 		}//NewPostgreSqlGuid()
@@ -99,7 +98,8 @@ namespace SecurityDriven
 			{
 				ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
 				var ulongStruct = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(guidStruct.Item2, 16));
-				return Unsafe.As<ulong, DateTime>(ref ulongStruct);
+				long ticks = (long)(ulongStruct & 0x3FFF_FFFF_FFFF_FFFFL);
+				return new DateTime(ticks, DateTimeKind.Utc);
 			}// GetTimestamp()
 
 			/// <summary>Returns the *smallest* Guid for a given timestamp (useful for time-based database range searches).</summary>
@@ -107,9 +107,9 @@ namespace SecurityDriven
 			{
 				Guid guid = default;
 				ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
-				ref var ticksStruct = ref Unsafe.As<DateTime, ulong>(ref timestampUtc);
+				ulong ticks = (ulong)timestampUtc.Ticks;
 
-				guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticksStruct, 16));
+				guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticks, 16));
 
 				return guid;
 			}// MinGuidForTimestamp()
@@ -119,9 +119,9 @@ namespace SecurityDriven
 			{
 				Guid guid = AllBitsSet;
 				ref var guidStruct = ref Unsafe.As<Guid, (long, ulong)>(ref guid);
-				ref var ticksStruct = ref Unsafe.As<DateTime, ulong>(ref timestampUtc);
+				ulong ticks = (ulong)timestampUtc.Ticks;
 
-				guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticksStruct, 16));
+				guidStruct.Item2 = BinaryPrimitives.ReverseEndianness(BitOperations.RotateRight(ticks, 16));
 
 				return guid;
 			}// MaxGuidForTimestamp()
@@ -140,7 +140,8 @@ namespace SecurityDriven
 				ref var guidTimestamp = ref Unsafe.As<Guid, (uint, ushort, ushort)>(ref guid);
 				ulong ticksStruct = ((ulong)guidTimestamp.Item1 << 32) | ((uint)guidTimestamp.Item2 << 16) | guidTimestamp.Item3;
 
-				return Unsafe.As<ulong, DateTime>(ref ticksStruct);
+				long ticks = (long)(ticksStruct & 0x3FFF_FFFF_FFFF_FFFFL);
+				return new DateTime(ticks, DateTimeKind.Utc);
 			}// GetTimestamp()
 
 			/// <summary>Returns the *smallest* Guid for a given timestamp (useful for time-based database range searches).</summary>
@@ -148,12 +149,11 @@ namespace SecurityDriven
 			{
 				Guid guid = default;
 				ref var guidStruct = ref Unsafe.As<Guid, (int, short, short)>(ref guid);
-				ref var ticksStruct = ref Unsafe.As<DateTime, (int, int)>(ref timestampUtc);
-				ref var shortStruct = ref Unsafe.As<int, (short, short)>(ref ticksStruct.Item1);
+				ulong ticks = (ulong)timestampUtc.Ticks;
 
-				guidStruct.Item1 = ticksStruct.Item2;
-				guidStruct.Item2 = shortStruct.Item2;
-				guidStruct.Item3 = shortStruct.Item1;
+				guidStruct.Item1 = (int)(ticks >> 32);
+				guidStruct.Item2 = (short)(ticks >> 16);
+				guidStruct.Item3 = (short)ticks;
 
 				return guid;
 			}// MinGuidForTimestamp()
@@ -163,12 +163,11 @@ namespace SecurityDriven
 			{
 				Guid guid = AllBitsSet;
 				ref var guidStruct = ref Unsafe.As<Guid, (int, short, short)>(ref guid);
-				ref var ticksStruct = ref Unsafe.As<DateTime, (int, int)>(ref timestampUtc);
-				ref var shortStruct = ref Unsafe.As<int, (short, short)>(ref ticksStruct.Item1);
+				ulong ticks = (ulong)timestampUtc.Ticks;
 
-				guidStruct.Item1 = ticksStruct.Item2;
-				guidStruct.Item2 = shortStruct.Item2;
-				guidStruct.Item3 = shortStruct.Item1;
+				guidStruct.Item1 = (int)(ticks >> 32);
+				guidStruct.Item2 = (short)(ticks >> 16);
+				guidStruct.Item3 = (short)ticks;
 
 				return guid;
 			}// MaxGuidForTimestamp()
