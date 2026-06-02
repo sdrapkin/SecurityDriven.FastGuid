@@ -166,7 +166,7 @@ namespace SecurityDriven
 		/// Tries to convert a Base64Url string to a Guid.
 		/// </summary>
 		/// <param name="base64Url">The Base64Url char span to convert.</param>
-		/// <param name="guid">When this method returns, contains the Guid value equivalent to the Base64Url string, if the conversion succeeded, or <see cref="Guid.Empty"/> if it failed.</param>
+		/// <param name="guid">When this method returns, contains the Guid value equivalent to the Base64Url string, if the conversion succeeded.</param>
 		/// <returns><c>true</c> if the string was converted successfully; otherwise, <c>false</c>. Does not throw.</returns>
 		public static bool TryFromBase64Url(ReadOnlySpan<char> base64Url, out Guid guid)
 		{
