@@ -1,4 +1,19 @@
-﻿## 🚀 What's New in FastGuid v1.4.2 (`2026-05-24`)
+﻿## 🚀 What's New in FastGuid v1.4.3 (`2026-06-02`)
+
+### ✅ Bug fixes & correctness
+- Fixed a rounding edge-case in UUIDv7 timestamp extraction that could return
+  the previous-millisecond for high-precision inputs (affects
+  `ExtractDateTimeV7` / `TryExtractDateTimeV7`).
+
+### ⚡ Performance improvements
+- Added `ReadOnlySpan<char>` overload for Guid.`FromBase64Url`.
+- Improved bounds-check overhead `FromBase64Url(string)`.
+
+### 🛡️ Reliability
+- Hardened `FastGuid.Reset()` to avoid a rare race during VM fork / Lambda
+  SnapStart rehydration that could leave stale thread-local buffers referenced.
+
+## 🚀 What's New in FastGuid v1.4.2 (`2026-05-24`)
 
 ### 🧩 Full RFC 9562 UUIDv7 Support
 - Added the `FastGuid.UUID` static subclass, providing high-performance,
