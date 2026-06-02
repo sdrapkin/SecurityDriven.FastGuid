@@ -101,10 +101,10 @@ namespace SecurityDriven
 			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
 			0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF];
 
-		/// <summary>Converts a Base64Url string back to a Guid.</summary>
-		/// <param name="base64Url">The Base64Url string to convert.</param>
-		/// <returns>The Guid represented by the Base64Url string (22 chars). Throws ArgumentException on invalid input.</returns>
-		public static Guid FromBase64Url(this string base64Url)
+		/// <summary>Converts a Base64Url character span back to a Guid.</summary>
+		/// <param name="base64Url">The Base64Url character span to convert.</param>
+		/// <returns>The Guid represented by the Base64Url span (22 chars). Throws ArgumentException on invalid input.</returns>
+		public static Guid FromBase64Url(this ReadOnlySpan<char> base64Url)
 		{
 			[DoesNotReturn]
 			static void Throw_ArgumentException(string message) => throw new ArgumentException(message, nameof(base64Url));
@@ -114,7 +114,7 @@ namespace SecurityDriven
 
 			Guid guid = default;
 
-			ref char inputRef = ref MemoryMarshal.GetReference(base64Url.AsSpan());
+			ref char inputRef = ref MemoryMarshal.GetReference(base64Url);
 			ref byte lookupRef = ref MemoryMarshal.GetReference(DecodeLookup);
 			ref byte guidByteRef = ref Unsafe.As<Guid, byte>(ref guid);
 
@@ -160,7 +160,17 @@ namespace SecurityDriven
 
 			Unsafe.Add(ref guidByteRef, LIMIT) = (byte)((b0 << 2) | (b1 >> 4));
 			return guid;
-		}//FromBase64Url()
+		}//FromBase64Url(ReadOnlySpan<char>)
+
+		/// <summary>Converts a Base64Url string back to a Guid.</summary>
+		/// <param name="base64Url">The Base64Url string to convert.</param>
+		/// <returns>The Guid represented by the Base64Url string (22 chars). Throws ArgumentException on invalid input.</returns>
+		public static Guid FromBase64Url(this string base64Url)
+		{
+			[DoesNotReturn]	static void Throw_ArgumentNullException() => throw new ArgumentNullException(nameof(base64Url));
+			if (base64Url is null) Throw_ArgumentNullException();
+			return FromBase64Url(base64Url.AsSpan());
+		}//FromBase64Url(string)
 
 		/// <summary>
 		/// Tries to convert a Base64Url string to a Guid.
