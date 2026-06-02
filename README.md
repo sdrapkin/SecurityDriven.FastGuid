@@ -209,28 +209,34 @@ Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
 
 ## Benchmark #2:
 ```csharp
-static Guid Guid_NewGuid() => Guid.NewGuid();
-static Guid Guid_CreateVersion7() => Guid.CreateVersion7();
-static Guid FastGuid_NewGuid() => SecurityDriven.FastGuid.NewGuid();
-static Guid FastGuid_NewSqlServerGuid() => SecurityDriven.FastGuid.NewSqlServerGuid();
-static Guid FastGuid_NewPostgreSqlGuid() => SecurityDriven.FastGuid.NewPostgreSqlGuid();
+static long UtcNow() => DateTime.UtcNow.Ticks;
+static long StopwatchDT() => Stopwatch.GetTimestamp();
+static Guid Fast_Guid() => SecurityDriven.FastGuid.NewGuid();
+static Guid Fast_UUID7() => SecurityDriven.FastGuid.UUID.CreateVersion7();
+static Guid Fast_MSSqlGuid() => SecurityDriven.FastGuid.NewSqlServerGuid();
+static Guid Fast_PGSqlGuid() => SecurityDriven.FastGuid.NewPostgreSqlGuid();
+static Guid NewGuid4() => Guid.NewGuid();
+static Guid NewGuid7() => Guid.CreateVersion7();
 ```
 
 ```csharp
-BenchmarkDotNet v0.13.8, Windows 10 (10.0.19045.5371/22H2/2022Update)
+BenchmarkDotNet v0.15.1, Windows 11 (10.0.26200.8457)
 Intel Core i7-10510U CPU 1.80GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK 9.0.102
-  [Host] : .NET 9.0.1 (9.0.124.61010), X64 RyuJIT AVX2
+.NET SDK 11.0.100-preview.4.26230.115
+  [Host] : .NET 10.0.8 (10.0.826.23019), X64 RyuJIT AVX2
 ```
-| Method                     | Mean       | Error     | StdDev    | Ratio|
-|--------------------------- |-----------:|----------:|----------:|-----:|
-| Guid_NewGuid               |  84.479 ns | 1.5090 ns | 3.3751 ns |   9x |
-| Guid_CreateVersion7        | 116.798 ns | 1.5795 ns | 1.8190 ns |  12x |
-| FastGuid_NewGuid           |   9.676 ns | 0.2318 ns | 0.5278 ns |   1x |
-| FastGuid_NewSqlServerGuid  |  36.710 ns | 0.6097 ns | 0.8546 ns |   4x |
-| FastGuid_NewPostgreSqlGuid |  37.292 ns | 0.7558 ns | 1.0839 ns |   4x |
+| Method         | Mean      | Error    | StdDev   | Ratio|
+|--------------- |----------:|---------:|---------:|-----:|
+| UtcNow         |  25.65 ns | 0.279 ns | 0.233 ns | 2.3x |
+| StopwatchDT    |  15.26 ns | 0.168 ns | 0.149 ns | 1.4x |
+| Fast_Guid      |  11.29 ns | 0.259 ns | 0.299 ns | 1.0x |
+| Fast_UUID7     |  38.75 ns | 0.719 ns | 0.600 ns | ~ 3x |
+| Fast_MSSqlGuid |  37.26 ns | 0.455 ns | 0.380 ns | ~ 3x |
+| Fast_PGSqlGuid |  35.31 ns | 0.516 ns | 0.574 ns | ~ 3x |
+| NewGuid4       |  93.35 ns | 1.652 ns | 1.545 ns | ~ 8x |
+| NewGuid7       | 128.89 ns | 2.132 ns | 1.780 ns | ~11x |
 
-![image](https://github.com/user-attachments/assets/be64b268-56b4-40e2-9757-9205c6fea411)
+<img width="715" height="331" alt="image" src="https://github.com/user-attachments/assets/86d4115e-fc63-4965-bbfb-2e3c2ea2869a" />
 
 ## Example: Fast random string generation
 
