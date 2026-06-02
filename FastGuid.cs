@@ -186,12 +186,12 @@ namespace SecurityDriven
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static void FillContainer(ref Container container)
 		{
+			// Capture the epoch before filling. If Reset() occurs while the fill is in
+			// progress, this stored epoch will no longer match s_epoch and the next
+			// NewGuid() or Fill() call will immediately refill the buffer.
+			int epochSnapshot = s_epoch; 
 			RandomNumberGenerator.Fill(container._guids.AsSpanByte());
-
-			// Capture epoch AFTER the fill, so if Reset() races during fill
-			// (theoretically possible but not expected in Lambda's single-threaded
-			// hook model), the mismatch is detected again on the *next* call.
-			container._epoch = s_epoch;
+			container._epoch = epochSnapshot; // associate the refilled buffer with the epoch observed before the fill
 		}//FillContainer()
 	}//class FastGuid
 }//ns
