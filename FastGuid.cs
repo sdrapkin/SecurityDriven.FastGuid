@@ -16,6 +16,9 @@ namespace SecurityDriven
 		// Copyright (c) 2026 Stan Drapkin
 		// LICENSE: https://github.com/sdrapkin/SecurityDriven.FastGuid
 
+		static FastGuid() => _ = BitConverter.IsLittleEndian ? true :
+			throw new PlatformNotSupportedException($"{nameof(FastGuid)} requires a little-endian architecture.");
+
 		const int GUIDS_PER_THREAD = 1 << 8; // 256 (keep it power-of-2)
 		const int GUID_SIZE_IN_BYTES = 16;
 
@@ -189,7 +192,7 @@ namespace SecurityDriven
 			// Capture the epoch before filling. If Reset() occurs while the fill is in
 			// progress, this stored epoch will no longer match s_epoch and the next
 			// NewGuid() or Fill() call will immediately refill the buffer.
-			int epochSnapshot = s_epoch; 
+			int epochSnapshot = s_epoch;
 			RandomNumberGenerator.Fill(container._guids.AsSpanByte());
 			container._epoch = epochSnapshot; // associate the refilled buffer with the epoch observed before the fill
 		}//FillContainer()
